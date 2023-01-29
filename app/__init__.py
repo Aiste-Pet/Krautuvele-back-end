@@ -8,8 +8,6 @@ from flask_bcrypt import Bcrypt
 from flask_mail import Mail
 from flask_marshmallow import Marshmallow
 
-base_dir = os.path.dirname(__file__)
-
 app = Flask(__name__)
 app.app_context().push()
 
