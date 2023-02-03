@@ -25,7 +25,7 @@ openai.api_key = os.environ.get("OPENAI_API_KEY")
 base_dir = os.path.abspath(os.path.dirname(__file__))
 
 
-# db.create_all()
+db.create_all()
 
 # shop = Shop(
 #     "Megztukas",
@@ -54,50 +54,49 @@ base_dir = os.path.abspath(os.path.dirname(__file__))
 # db.session.add_all([user])
 # db.session.commit()
 
-# category1 = Product_category("Dydis")
-# category2 = Product_category("Spalva")
-# category3 = Product_category("Ilgis")
-
-# db.session.add_all([category1, category2, category3])
-# db.session.commit()
-
-
-generated_product_names = openai.Completion.create(
-    model="text-babbage-001",
-    prompt="Generate classic product name for a handmade product",
-    temperature=0.9,
-    n=30,
-)
+# categories = ["Papuošalai", "Apranga", "Aksesuarai", "Interjeras", "Žaislai", "Amatai"]
+# for category in categories:
+#     categoryItem = Product_category(category)
+#     db.session.add(categoryItem)
+#     db.session.commit()
 
 
-def seed_products():
-    for item in generated_product_names.choices:
-        product_name = re.sub('"', "", re.sub("\n", " ", item.text).strip())
-        product_price = round(random.uniform(0.01, 99.99), 2)
-        generated_product_description = openai.Completion.create(
-            model="text-babbage-001",
-            prompt=f"Generate {product_name} description",
-            temperature=0,
-            n=1,
-        )
-        product_description = re.sub(
-            "\n", " ", generated_product_description.choices[0].text
-        ).strip()
-        product_category_id = random.randint(1, 3)
-        shop_id = 1
-        product = Product(
-            product_name,
-            product_price,
-            product_description,
-            product_category_id,
-            shop_id,
-        )
-        db.session.add(product)
-        db.session.commit()
-        time.sleep(5)
+# generated_product_names = openai.Completion.create(
+#     model="text-babbage-001",
+#     prompt="Generate classic product name for a handmade product",
+#     temperature=0.9,
+#     n=50,
+# )
 
 
-seed_products()
+# def seed_products():
+#     for item in generated_product_names.choices:
+#         product_name = re.sub('"', "", re.sub("\n", " ", item.text).strip())
+#         product_price = round(random.uniform(0.01, 99.99), 2)
+#         generated_product_description = openai.Completion.create(
+#             model="text-babbage-001",
+#             prompt=f"Generate {product_name} description",
+#             temperature=0,
+#             n=1,
+#         )
+#         product_description = re.sub(
+#             "\n", " ", generated_product_description.choices[0].text
+#         ).strip()
+#         product_category_id = random.randint(1, 6)
+#         shop_id = 1
+#         product = Product(
+#             product_name,
+#             product_price,
+#             product_description,
+#             product_category_id,
+#             shop_id,
+#         )
+#         db.session.add(product)
+#         db.session.commit()
+#         time.sleep(5)
+
+
+# seed_products()
 
 
 def seed_product_images():
@@ -130,25 +129,34 @@ def seed_product_images():
 
 seed_product_images()
 
+# property1 = Product_property("Dydis", "S", 1)
+# property2 = Product_property("Dydis", "M", 2)
+# property3 = Product_property("Dydis", "L", 3)
+# property4 = Product_property("Spalva", "raudona", 4)
+# property5 = Product_property("Spalva", "mėlyna", 5)
+# property6 = Product_property("Spalva", "žalia", 6)
+# property7 = Product_property("Spalva", "geltona", 7)
+# property8 = Product_property("Spalva", "balta", 8)
+# property9 = Product_property("Spalva", "juoda", 8)
+# property10 = Product_property("Ilgis", "trumpas", 9)
+# property11 = Product_property("Ilgis", "ilgas", 9)
 
-# def test_image(image_urls):
-#     for index, url in enumerate(image_urls):
-#         response = requests.get(url)
-#         open(
-#             os.path.join(base_dir, f"app/static/product_images/test-{index}.jpg"), "wb"
-#         ).write(response.content)
-#         product_image = Product_image(
-#             product_id=1,
-#             public_dir=os.path.join(
-#                 base_dir, f"app/static/product_images/test-{index}.jpg"
-#             ),
-#             type="test",
-#         )
-#         db.session.add(product_image)
-#         db.session.commit()
-
-
-# test_image(image_urls=image_urls)
+# db.session.add_all(
+#     [
+#         property1,
+#         property2,
+#         property3,
+#         property4,
+#         property5,
+#         property6,
+#         property7,
+#         property8,
+#         property9,
+#         property10,
+#         property11,
+#     ]
+# )
+# db.session.commit()
 
 # with open("data_seed/products_data.json", "r") as json_file:
 #     data = json.load(json_file)
