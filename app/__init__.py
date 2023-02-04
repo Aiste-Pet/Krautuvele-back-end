@@ -9,11 +9,11 @@ from flask_mail import Mail
 from flask_marshmallow import Marshmallow
 
 convention = {
-    "ix": 'ix_%(column_0_label)s',
+    "ix": "ix_%(column_0_label)s",
     "uq": "uq_%(table_name)s_%(column_0_name)s",
     "ck": "ck_%(table_name)s_%(constraint_name)s",
     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
-    "pk": "pk_%(table_name)s"
+    "pk": "pk_%(table_name)s",
 }
 
 app = Flask(__name__)
@@ -21,7 +21,9 @@ app.app_context().push()
 
 
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(basedir, "data.db")
+app.config.from_prefixed_env()
+app.config["SQLALCHEMY_DATABASE_URI"]
+app.config["SECRET_KEY"]
 
 metadata = MetaData(naming_convention=convention)
 
