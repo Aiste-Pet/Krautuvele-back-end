@@ -2,6 +2,16 @@ from flask import request, jsonify
 from app import app, db, ma
 from app.models.Product import Product
 from app.models.Product_category import Product_category
+from app.models.Address import Address
+from app.models.Cart import Cart
+from app.models.Order_items import Order_items
+from app.models.Order import Order
+from app.models.Payment import Payment
+from app.models.Product_image import Product_image
+from app.models.Product_property import Product_property
+from app.models.Sales import Sales
+from app.models.Shop import Shop
+from app.models.User import User
 
 
 class ProductSchema(ma.Schema):

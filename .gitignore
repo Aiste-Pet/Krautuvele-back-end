@@ -6,3 +6,4 @@ __pycache__
 # Ignore .env files
 .env
 .env.local
+seed_data.py
