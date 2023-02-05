@@ -10,7 +10,7 @@ pip install -r requirements.txt
 pip freeze > requirements.txt
 
 export FLASK_SECRET_KEY=SECRET_KEY
-source.env.local
+source .env.local
 printenv
 
 
