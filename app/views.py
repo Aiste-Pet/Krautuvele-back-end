@@ -21,6 +21,7 @@ class ProductSchema(ma.Schema):
             "name",
             "description",
             "product_category_id",
+            "created_at",
             "shop_id",
             "price",
         )
