@@ -110,3 +110,9 @@ def getProductsByFilter(filter):
             return "No products found", 404
     else:
         result = []
+
+
+@app.route("/categories", methods=["GET"])
+def getCategories():
+    categories = Product_category.query.all()
+    return products_schema.jsonify(categories)
