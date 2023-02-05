@@ -75,13 +75,37 @@ def getBestRatedShops():
 def getProductsByFilter(filter):
     if filter == "newest":
         sorted_products = Product.query.order_by(Product.created_at.desc()).all()
-        result = sorted_products[:10]
+        products = sorted_products[:10]
+        result = []
+        for product in products:
+            query_product_images = Product_image.query.filter_by(
+                product_id=product.id
+            ).all()
+            shop = Shop.query.filter_by(id=product.shop_id).first()
+            category = Product_category.query.filter_by(
+                id=product.product_category_id
+            ).first()
+            product_images = []
+            for image in query_product_images:
+                product_images.append(image.public_dir)
+            result.append(
+                {
+                    "id": product.id,
+                    "name": product.name,
+                    "description": product.description,
+                    "product_category_name": category.name,
+                    "created_at": product.created_at,
+                    "shop_name": shop.name,
+                    "price": product.price,
+                    "product_images": product_images,
+                }
+            )
         try:
-            return products_schema.jsonify(result)
+            return jsonify(result)
         except:
             return "No products found", 404
     elif filter == "popular":
-        most_sold = (
+        most_sold_products = (
             db.session.query(
                 Order_items.product_id,
                 func.sum(Order_items.quantity).label("total_sold"),
@@ -91,17 +115,28 @@ def getProductsByFilter(filter):
             .all()[:10]
         )
         result = []
-        for item in most_sold:
+        for item in most_sold_products:
             product = Product.query.get(item[0])
+            query_product_images = Product_image.query.filter_by(
+                product_id=product.id
+            ).all()
+            shop = Shop.query.filter_by(id=product.shop_id).first()
+            category = Product_category.query.filter_by(
+                id=product.product_category_id
+            ).first()
+            product_images = []
+            for image in query_product_images:
+                product_images.append(image.public_dir)
             result.append(
                 {
-                    "id": item[0],
+                    "id": product.id,
                     "name": product.name,
                     "description": product.description,
-                    "product_category_id": product.product_category_id,
+                    "product_category_name": category.name,
                     "created_at": product.created_at,
-                    "shop_id": product.shop_id,
+                    "shop_name": shop.name,
                     "price": product.price,
+                    "product_images": product_images,
                 }
             )
         try:
