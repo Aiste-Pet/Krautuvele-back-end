@@ -11,9 +11,12 @@ class Product(db.Model):
     product_category_id = db.Column(db.Integer, db.ForeignKey("product_category.id"))
     shop_id = db.Column(db.Integer, db.ForeignKey("shop.id"))
 
-    def __init__(self, name, price, description, product_category_id, shop_id):
+    def __init__(
+        self, name, price, description, created_at, product_category_id, shop_id
+    ):
         self.name = name
         self.price = price
         self.description = description
+        self.created_at = created_at
         self.product_category_id = product_category_id
         self.shop_id = shop_id
