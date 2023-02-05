@@ -12,3 +12,11 @@ pip freeze > requirements.txt
 export FLASK_SECRET_KEY=SECRET_KEY
 source.env.local
 printenv
+
+
+flask db init
+
+flask db migrate
+flask db stamp head
+
+flask db upgrade
