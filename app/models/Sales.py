@@ -1,6 +1,7 @@
 from app import db
 
 
+
 class Sales(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     shop_id = db.Column(db.Integer, db.ForeignKey("shop.id"))
