@@ -32,6 +32,28 @@ product_schema = ProductSchema()
 products_schema = ProductSchema(many=True)
 
 
+def gatherProductData(result, product):
+    query_product_images = Product_image.query.filter_by(product_id=product.id).all()
+    shop = Shop.query.filter_by(id=product.shop_id).first()
+    category = Product_category.query.filter_by(id=product.product_category_id).first()
+    product_images = []
+    for image in query_product_images:
+        product_images.append(image.public_dir)
+    result.append(
+        {
+            "id": product.id,
+            "name": product.name,
+            "description": product.description,
+            "product_category_name": category.name,
+            "created_at": product.created_at,
+            "shop_name": shop.name,
+            "price": product.price,
+            "product_images": product_images,
+        }
+    )
+    return result
+
+
 class ShopSchema(ma.Schema):
     class Meta:
         fields = (
@@ -78,28 +100,7 @@ def getProductsByFilter(filter):
         products = sorted_products[:10]
         result = []
         for product in products:
-            query_product_images = Product_image.query.filter_by(
-                product_id=product.id
-            ).all()
-            shop = Shop.query.filter_by(id=product.shop_id).first()
-            category = Product_category.query.filter_by(
-                id=product.product_category_id
-            ).first()
-            product_images = []
-            for image in query_product_images:
-                product_images.append(image.public_dir)
-            result.append(
-                {
-                    "id": product.id,
-                    "name": product.name,
-                    "description": product.description,
-                    "product_category_name": category.name,
-                    "created_at": product.created_at,
-                    "shop_name": shop.name,
-                    "price": product.price,
-                    "product_images": product_images,
-                }
-            )
+            result = gatherProductData(result, product)
         try:
             return jsonify(result)
         except:
@@ -117,28 +118,7 @@ def getProductsByFilter(filter):
         result = []
         for item in most_sold_products:
             product = Product.query.get(item[0])
-            query_product_images = Product_image.query.filter_by(
-                product_id=product.id
-            ).all()
-            shop = Shop.query.filter_by(id=product.shop_id).first()
-            category = Product_category.query.filter_by(
-                id=product.product_category_id
-            ).first()
-            product_images = []
-            for image in query_product_images:
-                product_images.append(image.public_dir)
-            result.append(
-                {
-                    "id": product.id,
-                    "name": product.name,
-                    "description": product.description,
-                    "product_category_name": category.name,
-                    "created_at": product.created_at,
-                    "shop_name": shop.name,
-                    "price": product.price,
-                    "product_images": product_images,
-                }
-            )
+            result = gatherProductData(result, product)
         try:
             return jsonify(result)
         except:
@@ -161,29 +141,8 @@ def filterByCategory(category_name):
     products = Product.query.filter_by(product_category_id=category.id).all()
     result = []
     for product in products:
-        query_product_images = Product_image.query.filter_by(
-            product_id=product.id
-        ).all()
-        shop = Shop.query.filter_by(id=product.shop_id).first()
-        category = Product_category.query.filter_by(
-            id=product.product_category_id
-        ).first()
-        product_images = []
-        for image in query_product_images:
-            product_images.append(image.public_dir)
-        result.append(
-            {
-                "id": product.id,
-                "name": product.name,
-                "description": product.description,
-                "product_category_name": category.name,
-                "created_at": product.created_at,
-                "shop_name": shop.name,
-                "price": product.price,
-                "product_images": product_images,
-            }
-        )
-        try:
-            return jsonify(result)
-        except:
-            return "No products found", 404
+        result = gatherProductData(result, product)
+    try:
+        return jsonify(result)
+    except:
+        return "No products found", 404
