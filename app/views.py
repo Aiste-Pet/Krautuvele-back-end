@@ -151,3 +151,39 @@ def getProductsByFilter(filter):
 def getCategories():
     categories = Product_category.query.all()
     return products_schema.jsonify(categories)
+
+
+@app.route("/products/category/<category_name>")
+def filterByCategory(category_name):
+    category = Product_category.query.filter_by(name=category_name).first()
+    if not category:
+        return "Category not found", 404
+    products = Product.query.filter_by(product_category_id=category.id).all()
+    result = []
+    for product in products:
+        query_product_images = Product_image.query.filter_by(
+            product_id=product.id
+        ).all()
+        shop = Shop.query.filter_by(id=product.shop_id).first()
+        category = Product_category.query.filter_by(
+            id=product.product_category_id
+        ).first()
+        product_images = []
+        for image in query_product_images:
+            product_images.append(image.public_dir)
+        result.append(
+            {
+                "id": product.id,
+                "name": product.name,
+                "description": product.description,
+                "product_category_name": category.name,
+                "created_at": product.created_at,
+                "shop_name": shop.name,
+                "price": product.price,
+                "product_images": product_images,
+            }
+        )
+        try:
+            return jsonify(result)
+        except:
+            return "No products found", 404
