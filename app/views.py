@@ -54,6 +54,20 @@ def gatherProductData(result, product):
     return result
 
 
+def filterByCategory(category_name):
+    category = Product_category.query.filter_by(name=category_name).first()
+    if not category:
+        return "Category not found", 404
+    products = Product.query.filter_by(product_category_id=category.id).all()
+    result = []
+    for product in products:
+        result = gatherProductData(result, product)
+    try:
+        return jsonify(result)
+    except:
+        return "No products found", 404
+
+
 class ShopSchema(ma.Schema):
     class Meta:
         fields = (
@@ -93,11 +107,10 @@ def getBestRatedShops():
     return shops_schema.jsonify(result)
 
 
-@app.route("/products/<string:filter>", methods=["GET"])
+@app.route("/products/category/<string:filter>", methods=["GET"])
 def getProductsByFilter(filter):
-    if filter == "newest":
-        sorted_products = Product.query.order_by(Product.created_at.desc()).all()
-        products = sorted_products[:10]
+    if filter == "Naujienos":
+        products = Product.query.order_by(Product.created_at.desc()).all()
         result = []
         for product in products:
             result = gatherProductData(result, product)
@@ -105,7 +118,7 @@ def getProductsByFilter(filter):
             return jsonify(result)
         except:
             return "No products found", 404
-    elif filter == "popular":
+    elif filter == "Populiaru":
         most_sold_products = (
             db.session.query(
                 Order_items.product_id,
@@ -113,7 +126,7 @@ def getProductsByFilter(filter):
             )
             .group_by(Order_items.product_id)
             .order_by(desc("total_sold"))
-            .all()[:10]
+            .all()
         )
         result = []
         for item in most_sold_products:
@@ -124,25 +137,11 @@ def getProductsByFilter(filter):
         except:
             return "No products found", 404
     else:
-        result = []
+        result = filterByCategory(filter)
+        return result
 
 
 @app.route("/categories", methods=["GET"])
 def getCategories():
     categories = Product_category.query.all()
     return products_schema.jsonify(categories)
-
-
-@app.route("/products/category/<category_name>")
-def filterByCategory(category_name):
-    category = Product_category.query.filter_by(name=category_name).first()
-    if not category:
-        return "Category not found", 404
-    products = Product.query.filter_by(product_category_id=category.id).all()
-    result = []
-    for product in products:
-        result = gatherProductData(result, product)
-    try:
-        return jsonify(result)
-    except:
-        return "No products found", 404
