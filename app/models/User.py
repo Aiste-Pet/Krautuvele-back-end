@@ -1,9 +1,8 @@
 from app import db
-from flask_login import UserMixin
 from datetime import datetime
 
 
-class User(db.Model, UserMixin):
+class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(255), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
@@ -14,6 +13,29 @@ class User(db.Model, UserMixin):
     picture_dir = db.Column(
         db.String(255), nullable=False, default="default_profile.jpg"
     )
+    roles = db.Column(db.String(255), nullable=False)
+
+    @property
+    def rolenames(self):
+        try:
+            return self.roles.split(",")
+        except Exception:
+            return []
+
+    @classmethod
+    def lookup(cls, username):
+        return cls.query.filter_by(username=username).one_or_none()
+
+    @classmethod
+    def identify(cls, id):
+        return cls.query.get(id)
+
+    @property
+    def identity(self):
+        return self.id
+
+    def is_valid(self):
+        return self.is_active
 
     def __init__(
         self, email, password, first_name, last_name, phone, created_at, picture_dir

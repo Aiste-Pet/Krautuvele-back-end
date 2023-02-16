@@ -1,6 +1,6 @@
 from flask import request, jsonify
 from sqlalchemy import func, desc
-from app import app, db, ma
+from app import app, db, ma, guard
 from app.models.Product import Product
 from app.models.Product_category import Product_category
 from app.models.Address import Address
@@ -13,6 +13,7 @@ from app.models.Product_property import Product_property
 from app.models.Sales import Sales
 from app.models.Shop import Shop
 from app.models.User import User
+import flask_praetorian
 
 
 class ProductSchema(ma.Schema):
@@ -39,18 +40,31 @@ def gatherProductData(result, product):
     product_images = []
     for image in query_product_images:
         product_images.append(image.public_dir)
-    result.append(
-        {
+    if result == {}:
+        result = {
             "id": product.id,
             "name": product.name,
             "description": product.description,
             "product_category_name": category.name,
             "created_at": product.created_at,
+            "shop_id": product.shop_id,
             "shop_name": shop.name,
             "price": product.price,
             "product_images": product_images,
         }
-    )
+    else:
+        result.append(
+            {
+                "id": product.id,
+                "name": product.name,
+                "description": product.description,
+                "product_category_name": category.name,
+                "created_at": product.created_at,
+                "shop_id": product.shop_id,
+                "price": product.price,
+                "product_images": product_images,
+            }
+        )
     return result
 
 
@@ -94,10 +108,33 @@ def getProducts():
     return products_schema.jsonify(products)
 
 
+@app.route("/product/<int:id>", methods=["GET"])
+def getProduct(id):
+    product = Product.query.get(id)
+    result = {}
+    result = gatherProductData(result, product)
+    try:
+        return jsonify(result)
+    except:
+        return "No products found", 404
+
+
 @app.route("/shop/<int:id>", methods=["GET"])
 def getShop(id):
     shop = Shop.query.get(id)
     return shop_schema.jsonify(shop)
+
+
+@app.route("/shop-products/<int:id>", methods=["GET"])
+def getShopProducts(id):
+    products = Product.query.filter_by(shop_id=id).all()
+    result = []
+    for product in products:
+        result = gatherProductData(result, product)
+    try:
+        return jsonify(result)
+    except:
+        return "No products found", 404
 
 
 @app.route("/shops/best-rated", methods=["GET"])
@@ -145,3 +182,51 @@ def getProductsByFilter(filter):
 def getCategories():
     categories = Product_category.query.all()
     return products_schema.jsonify(categories)
+
+
+@app.route("/login", methods=["POST"])
+def login():
+    """
+    Logs a user in by parsing a POST request containing user credentials and
+    issuing a JWT token.
+    .. example::
+       $ curl http://localhost:5000/login -X POST \
+         -d '{"username":"Yasoob","password":"strongpassword"}'
+    """
+    req = request.get_json(force=True)
+    username = req.get("username", None)
+    password = req.get("password", None)
+    user = guard.authenticate(username, password)
+    ret = {"access_token": guard.encode_jwt_token(user)}
+    return ret, 200
+
+
+@app.route("/refresh", methods=["POST"])
+def refresh():
+    """
+    Refreshes an existing JWT by creating a new one that is a copy of the old
+    except that it has a refrehsed access expiration.
+    .. example::
+       $ curl http://localhost:5000/refresh -X GET \
+         -H "Authorization: Bearer <your_token>"
+    """
+    print("refresh request")
+    old_token = request.get_data()
+    new_token = guard.refresh_jwt_token(old_token)
+    ret = {"access_token": new_token}
+    return ret, 200
+
+
+@app.route("/protected")
+@flask_praetorian.auth_required
+def protected():
+    """
+    A protected endpoint. The auth_required decorator will require a header
+    containing a valid JWT
+    .. example::
+       $ curl http://localhost:5000/protected -X GET \
+         -H "Authorization: Bearer <your_token>"
+    """
+    return {
+        "message": f"protected endpoint (allowed user {guard.current_user().username})"
+    }
