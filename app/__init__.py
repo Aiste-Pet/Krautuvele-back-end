@@ -8,7 +8,8 @@ from flask_bcrypt import Bcrypt
 from flask_mail import Mail
 from flask_marshmallow import Marshmallow
 from flask_cors import CORS
-import flask_praetorian
+from flask_praetorian import Praetorian
+
 
 convention = {
     "ix": "ix_%(column_0_label)s",
@@ -36,7 +37,7 @@ ma = Marshmallow(app)
 login_manager = LoginManager(app)
 bcrypt = Bcrypt(app)
 mail = Mail(app)
-guard = flask_praetorian.Praetorian(app)
+guard = Praetorian()
 
 from app.admin import *
 from app import views

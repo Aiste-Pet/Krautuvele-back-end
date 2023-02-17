@@ -14,6 +14,24 @@ from app.models.Sales import Sales
 from app.models.Shop import Shop
 from app.models.User import User
 import flask_praetorian
+from flask import jsonify
+
+guard.init_app(app, User)
+
+
+class UserSchema(ma.Schema):
+    class Meta:
+        fields = (
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "phone",
+            "picture_dir",
+        )
+
+
+user_schema = UserSchema()
 
 
 class ProductSchema(ma.Schema):
@@ -189,14 +207,11 @@ def login():
     """
     Logs a user in by parsing a POST request containing user credentials and
     issuing a JWT token.
-    .. example::
-       $ curl http://localhost:5000/login -X POST \
-         -d '{"username":"Yasoob","password":"strongpassword"}'
     """
     req = request.get_json(force=True)
-    username = req.get("username", None)
+    email = req.get("email", None)
     password = req.get("password", None)
-    user = guard.authenticate(username, password)
+    user = guard.authenticate(email, password)
     ret = {"access_token": guard.encode_jwt_token(user)}
     return ret, 200
 
@@ -206,11 +221,7 @@ def refresh():
     """
     Refreshes an existing JWT by creating a new one that is a copy of the old
     except that it has a refrehsed access expiration.
-    .. example::
-       $ curl http://localhost:5000/refresh -X GET \
-         -H "Authorization: Bearer <your_token>"
     """
-    print("refresh request")
     old_token = request.get_data()
     new_token = guard.refresh_jwt_token(old_token)
     ret = {"access_token": new_token}
@@ -223,10 +234,29 @@ def protected():
     """
     A protected endpoint. The auth_required decorator will require a header
     containing a valid JWT
-    .. example::
-       $ curl http://localhost:5000/protected -X GET \
-         -H "Authorization: Bearer <your_token>"
     """
     return {
-        "message": f"protected endpoint (allowed user {guard.current_user().username})"
+        "message": f"protected endpoint (allowed user {guard.current_user().email})"
     }
+
+
+@app.route("/user-data", methods=["GET"])
+@flask_praetorian.auth_required
+def getUserData():
+    """
+    Returns user data for a user with a valid JWT token.
+    """
+    current_user = flask_praetorian.current_user()
+    result = {}
+    result = {
+        "id": current_user.id,
+        "email": current_user.email,
+        "first_name": current_user.first_name,
+        "last_name": current_user.last_name,
+        "phone": current_user.phone,
+        "picture_dir": current_user.picture_dir,
+    }
+    try:
+        return jsonify(result)
+    except:
+        return "No products found", 404
