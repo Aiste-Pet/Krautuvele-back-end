@@ -1,6 +1,6 @@
 from flask import request, jsonify
 from sqlalchemy import func, desc
-from app import app, db, ma, guard
+from app import app, db, guard
 from app.models.Product import Product
 from app.models.Product_category import Product_category
 from app.models.Address import Address
@@ -15,40 +15,13 @@ from app.models.Shop import Shop
 from app.models.User import User
 import flask_praetorian
 from flask import jsonify
+from datetime import datetime
+from app.schemas import products_schema
+from app.schemas import shop_schema
+from app.schemas import shops_schema
+
 
 guard.init_app(app, User)
-
-
-class UserSchema(ma.Schema):
-    class Meta:
-        fields = (
-            "id",
-            "email",
-            "first_name",
-            "last_name",
-            "phone",
-            "picture_dir",
-        )
-
-
-user_schema = UserSchema()
-
-
-class ProductSchema(ma.Schema):
-    class Meta:
-        fields = (
-            "id",
-            "name",
-            "description",
-            "product_category_id",
-            "created_at",
-            "shop_id",
-            "price",
-        )
-
-
-product_schema = ProductSchema()
-products_schema = ProductSchema(many=True)
 
 
 def gatherProductData(result, product):
@@ -98,26 +71,6 @@ def filterByCategory(category_name):
         return jsonify(result)
     except:
         return "No products found", 404
-
-
-class ShopSchema(ma.Schema):
-    class Meta:
-        fields = (
-            "id",
-            "name",
-            "city",
-            "rating",
-            "items_sold",
-            "description",
-            "slogan",
-            "payment_account",
-            "logo_dir",
-            "user_id",
-        )
-
-
-shop_schema = ShopSchema()
-shops_schema = ShopSchema(many=True)
 
 
 @app.route("/products", methods=["GET"])
@@ -204,10 +157,6 @@ def getCategories():
 
 @app.route("/login", methods=["POST"])
 def login():
-    """
-    Logs a user in by parsing a POST request containing user credentials and
-    issuing a JWT token.
-    """
     req = request.get_json(force=True)
     email = req.get("email", None)
     password = req.get("password", None)
@@ -218,45 +167,158 @@ def login():
 
 @app.route("/refresh", methods=["POST"])
 def refresh():
-    """
-    Refreshes an existing JWT by creating a new one that is a copy of the old
-    except that it has a refrehsed access expiration.
-    """
     old_token = request.get_data()
     new_token = guard.refresh_jwt_token(old_token)
     ret = {"access_token": new_token}
     return ret, 200
 
 
-@app.route("/protected")
-@flask_praetorian.auth_required
-def protected():
-    """
-    A protected endpoint. The auth_required decorator will require a header
-    containing a valid JWT
-    """
-    return {
-        "message": f"protected endpoint (allowed user {guard.current_user().email})"
-    }
-
-
-@app.route("/user-data", methods=["GET"])
+@app.route("/user-data", methods=["GET", "POST"])
 @flask_praetorian.auth_required
 def getUserData():
-    """
-    Returns user data for a user with a valid JWT token.
-    """
     current_user = flask_praetorian.current_user()
-    result = {}
-    result = {
-        "id": current_user.id,
-        "email": current_user.email,
-        "first_name": current_user.first_name,
-        "last_name": current_user.last_name,
-        "phone": current_user.phone,
-        "picture_dir": current_user.picture_dir,
-    }
-    try:
-        return jsonify(result)
-    except:
-        return "No products found", 404
+    if request.method == "GET":
+        user_orders = Order.query.filter_by(user_id=current_user.id).all()
+        user_addresses = Address.query.filter_by(user_id=current_user.id).all()
+        user_shops = Shop.query.filter_by(user_id=current_user.id).all()
+        user_data = {
+            "id": current_user.id,
+            "email": current_user.email,
+            "first_name": current_user.first_name,
+            "last_name": current_user.last_name,
+            "phone": current_user.phone,
+            "picture_dir": current_user.picture_dir,
+            "orders": [
+                {
+                    "id": order.id,
+                    "status": order.status,
+                    "total": order.total,
+                    "created_at": order.created_at,
+                }
+                for order in user_orders
+            ],
+            "addresses": [
+                {
+                    "address_line": address.address_line,
+                    "city": address.city,
+                    "postal_code": address.postal_code,
+                    "country": address.country,
+                    "id": address.id,
+                }
+                for address in user_addresses
+            ],
+            "shops": [
+                {
+                    "id": shop.id,
+                    "name": shop.name,
+                    "city": shop.city,
+                    "rating": shop.rating,
+                    "items_sold": shop.items_sold,
+                    "description": shop.description,
+                    "slogan": shop.slogan,
+                    "payment_account": shop.payment_account,
+                }
+                for shop in user_shops
+            ],
+        }
+        try:
+            return jsonify(user_data)
+        except:
+            return "No products found", 404
+    if request.method == "POST":
+        data = request.get_json()
+        if data:
+            existing_user = User.query.filter_by(email=data.get("email")).all()
+            if existing_user:
+                return "User with this email already exists", 409
+            current_user.email = data.get("email", current_user.email)
+            current_user.first_name = data.get("firstName", current_user.first_name)
+            current_user.last_name = data.get("lastName", current_user.last_name)
+            current_user.phone = data.get("phone", current_user.phone)
+            db.session.commit()
+            return "User data updated successfully", 200
+        else:
+            return "Invalid request data", 400
+
+
+@app.route("/register", methods=["POST"])
+def createUser():
+    data = request.get_json()
+    if data:
+        existing_user = User.query.filter_by(email=data.get("email")).all()
+        if existing_user:
+            return "User with this email already exists", 409
+        new_user = User(
+            email=data.get("email"),
+            first_name=data.get("firstName"),
+            last_name=data.get("lastName"),
+            phone=data.get("phone"),
+            created_at=datetime.now(),
+            picture_dir="default_profile.jpg",
+            roles="user",
+            is_active=True,
+        )
+        new_user.set_password(data.get("password"))
+        db.session.add(new_user)
+        db.session.commit()
+        return "User data updated successfully", 200
+    else:
+        return "Invalid request data", 400
+
+
+@app.route("/address-delete/<int:id>", methods=["POST"])
+@flask_praetorian.auth_required
+def deleteAddress(id):
+    address = Address.query.filter_by(id=id).first()
+    if address:
+        db.session.delete(address)
+        db.session.commit()
+        return "Address deleted successfully", 200
+    else:
+        return "Invalid request data", 400
+
+
+@app.route("/create-address", methods=["POST"])
+@flask_praetorian.auth_required
+def createAddress():
+    data = request.get_json()
+    if data:
+        current_user = flask_praetorian.current_user()
+        new_Address = Address(
+            address_line=data.get("address_line"),
+            city=data.get("city"),
+            postal_code=data.get("postal_code"),
+            country=data.get("country"),
+            user_id=current_user.id,
+        )
+        db.session.add(new_Address)
+        db.session.commit()
+        address_id = new_Address.id
+        return {"id": address_id, "message": "Address created successfully"}, 200
+    else:
+        return "Invalid request data", 400
+
+
+@app.route("/create-shop", methods=["POST"])
+@flask_praetorian.auth_required
+def createShop():
+    data = request.get_json()
+    if data:
+        current_user = flask_praetorian.current_user()
+        new_shop = Shop(
+            name=data.get("name"),
+            city=data.get("city"),
+            rating=0,
+            items_sold=0,
+            description=data.get("description"),
+            slogan=data.get("slogan"),
+            payment_account=data.get("payment_account"),
+            logo_dir="default_profile.jpg",
+            user_id=current_user.id,
+        )
+        db.session.add(new_shop)
+        db.session.commit()
+        shop_id = new_shop.id
+        return {"id": shop_id, "message": "Shop created successfully"}, 200
+    else:
+        return "Invalid request data", 400
