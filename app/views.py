@@ -367,18 +367,27 @@ def getCart():
         for cart in carts:
             cartValidity = isCartValid(cart.created_at)
             if cartValidity:
-                return {"cart_id": cart.id, "message": "Cart exists"}, 200
+                cart_id = cart.id
+                break
+        cart_items_objects = (
+            Cart_items.query.filter_by(cart_id=cart_id)
+            .join(Product, Cart_items.product_id == Product.id)
+            .add_columns(Product.name, Product.price, Cart_items.quantity)
+            .with_entities(Product.id, Product.name, Product.price, Cart_items.quantity)
+        ).all()
+        cart_items = [
+            {
+                "id": item.id,
+                "product_name": item.name,
+                "product_price": item.price,
+                "quantity": item.quantity,
+            }
+            for item in cart_items_objects
+        ]
+
+        return jsonify(cart_items)
     else:
-        created_at = datetime.strptime(
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S"
-        )
-        new_cart = Cart(user_id=current_user.id, created_at=created_at)
-        db.session.add(new_cart)
-        db.session.commit()
-        cart = Cart.query.filter_by(
-            user_id=current_user.id, created_at=created_at
-        ).first()
-        return {"cart_id": cart.id, "message": "Cart created"}, 200
+        return {"message": "No valid carts found"}, 404
 
 
 @app.route("/cart-add", methods=["POST"])
@@ -409,13 +418,20 @@ def add_to_cart():
         cart_id = cart.id
     data = request.get_json()
     if data:
-        new_cart_item = Cart_items(
-            cart_id=cart_id,
-            product_id=data.get("product_id"),
-            quantity=data.get("quantity"),
-        )
-        db.session.add(new_cart_item)
+        product_id = data.get("product_id")
+        quantity = data.get("quantity")
+        cart_item = Cart_items.query.filter_by(
+            product_id=product_id, cart_id=cart_id
+        ).first()
+
+        if cart_item:
+            cart_item.quantity += quantity
+        else:
+            new_cart_item = Cart_items(
+                cart_id=cart_id, product_id=product_id, quantity=quantity
+            )
+            db.session.add(new_cart_item)
         db.session.commit()
-        return {"message": "Cart item created successfully"}, 200
+        return {"message": "Cart item created/updated successfully"}, 200
     else:
         return "Invalid request data", 400
