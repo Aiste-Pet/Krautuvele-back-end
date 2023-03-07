@@ -5,6 +5,7 @@ from app.models.Product import Product
 from app.models.Product_category import Product_category
 from app.models.Address import Address
 from app.models.Cart import Cart
+from app.models.Cart_items import Cart_items
 from app.models.Order_items import Order_items
 from app.models.Order import Order
 from app.models.Payment import Payment
@@ -15,7 +16,7 @@ from app.models.Shop import Shop
 from app.models.User import User
 import flask_praetorian
 from flask import jsonify
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.schemas import products_schema
 from app.schemas import shop_schema
 from app.schemas import shops_schema
@@ -71,6 +72,14 @@ def filterByCategory(category_name):
         return jsonify(result)
     except:
         return "No products found", 404
+
+
+def isCartValid(date):
+    diff = datetime.now() - date
+    if diff <= timedelta(hours=48):
+        return True
+    else:
+        return False
 
 
 @app.route("/products", methods=["GET"])
@@ -313,12 +322,100 @@ def createShop():
             description=data.get("description"),
             slogan=data.get("slogan"),
             payment_account=data.get("payment_account"),
-            logo_dir="default_profile.jpg",
+            logo_dir="default_shop.png",
             user_id=current_user.id,
         )
         db.session.add(new_shop)
         db.session.commit()
         shop_id = new_shop.id
         return {"id": shop_id, "message": "Shop created successfully"}, 200
+    else:
+        return "Invalid request data", 400
+
+
+@app.route("/shop-delete/<int:id>", methods=["DELETE"])
+@flask_praetorian.auth_required
+def delete_shop(id):
+    shop = Shop.query.filter_by(id=id).first()
+    if shop:
+        db.session.delete(shop)
+        db.session.commit()
+        return {"message": "Shop deleted successfully"}, 200
+    else:
+        return {"message": "Shop not found"}, 404
+
+
+@app.route("/shop-delete/<int:id>", methods=["OPTIONS"])
+def delete_shop_preflight(id):
+    shop = Shop.query.filter_by(id=id).first()
+    if shop:
+        return {"message": "Shop exists"}, 200
+    else:
+        return {"message": "Shop not found"}, 404
+
+
+@app.route("/cart", methods=["GET"])
+@flask_praetorian.auth_required
+def getCart():
+    current_user = flask_praetorian.current_user()
+    carts = (
+        Cart.query.filter_by(user_id=current_user.id)
+        .order_by(Cart.created_at.desc())
+        .all()
+    )
+    if carts:
+        for cart in carts:
+            cartValidity = isCartValid(cart.created_at)
+            if cartValidity:
+                return {"cart_id": cart.id, "message": "Cart exists"}, 200
+    else:
+        created_at = datetime.strptime(
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S"
+        )
+        new_cart = Cart(user_id=current_user.id, created_at=created_at)
+        db.session.add(new_cart)
+        db.session.commit()
+        cart = Cart.query.filter_by(
+            user_id=current_user.id, created_at=created_at
+        ).first()
+        return {"cart_id": cart.id, "message": "Cart created"}, 200
+
+
+@app.route("/cart-add", methods=["POST"])
+@flask_praetorian.auth_required
+def add_to_cart():
+    current_user = flask_praetorian.current_user()
+    carts = (
+        Cart.query.filter_by(user_id=current_user.id)
+        .order_by(Cart.created_at.desc())
+        .all()
+    )
+    if carts:
+        for cart in carts:
+            cartValidity = isCartValid(cart.created_at)
+            if cartValidity:
+                cart_id = cart.id
+                break
+    else:
+        created_at = datetime.strptime(
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S"
+        )
+        new_cart = Cart(user_id=current_user.id, created_at=created_at)
+        db.session.add(new_cart)
+        db.session.commit()
+        cart = Cart.query.filter_by(
+            user_id=current_user.id, created_at=created_at
+        ).first()
+        cart_id = cart.id
+    data = request.get_json()
+    if data:
+        new_cart_item = Cart_items(
+            cart_id=cart_id,
+            product_id=data.get("product_id"),
+            quantity=data.get("quantity"),
+        )
+        db.session.add(new_cart_item)
+        db.session.commit()
+        return {"message": "Cart item created successfully"}, 200
     else:
         return "Invalid request data", 400

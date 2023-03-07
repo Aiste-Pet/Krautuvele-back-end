@@ -11,7 +11,7 @@ class User(db.Model):
     phone = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now())
     picture_dir = db.Column(
-        db.String(255), nullable=False, default="default_profile.jpg"
+        db.String(255), nullable=False, default="profile_images/default_profile.jpg"
     )
     roles = db.Column(db.String(255), nullable=False)
     is_active = db.Column(db.Boolean, default=True, server_default="true")
