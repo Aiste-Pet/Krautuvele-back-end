@@ -4,7 +4,7 @@ Krautuvele back-end with Python and Flask
 
 How to run this project:
 
-1. Fork it, clone it
+1. Fork it
 
 2. Create virtual environment
    $python -m venv venv
