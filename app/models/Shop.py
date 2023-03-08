@@ -5,12 +5,14 @@ class Shop(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)
     city = db.Column(db.String(255), nullable=False)
-    rating = db.Column(db.DECIMAL(4,2), nullable=False)
-    items_sold = db.Column(db.Integer, nullable=False)
+    rating = db.Column(db.DECIMAL(4, 2), nullable=False, default=0)
+    items_sold = db.Column(db.Integer, nullable=False, default=0)
     description = db.Column(db.String(3000), nullable=False)
     slogan = db.Column(db.String(500), nullable=False)
     payment_account = db.Column(db.String(255), nullable=False)
-    logo_dir = db.Column(db.String(255), nullable=False, default="default_profile.jpg")
+    logo_dir = db.Column(
+        db.String(255), nullable=False, default="shop_logos/default_shop.jpg"
+    )
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
 
     def __init__(
