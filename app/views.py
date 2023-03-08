@@ -418,20 +418,26 @@ def add_to_cart():
         cart_id = cart.id
     data = request.get_json()
     if data:
-        product_id = data.get("product_id")
-        quantity = data.get("quantity")
-        cart_item = Cart_items.query.filter_by(
-            product_id=product_id, cart_id=cart_id
-        ).first()
+        if isinstance(data, dict):
+            data = [data]
+        if isinstance(data, list):
+            for item in data:
+                product_id = item.get("product_id")
+                quantity = item.get("quantity")
+                cart_item = Cart_items.query.filter_by(
+                    product_id=product_id, cart_id=cart_id
+                ).first()
 
-        if cart_item:
-            cart_item.quantity += quantity
+                if cart_item:
+                    cart_item.quantity += quantity
+                else:
+                    new_cart_item = Cart_items(
+                        cart_id=cart_id, product_id=product_id, quantity=quantity
+                    )
+                    db.session.add(new_cart_item)
+            db.session.commit()
+            return {"message": "Cart items created/updated successfully"}, 200
         else:
-            new_cart_item = Cart_items(
-                cart_id=cart_id, product_id=product_id, quantity=quantity
-            )
-            db.session.add(new_cart_item)
-        db.session.commit()
-        return {"message": "Cart item created/updated successfully"}, 200
+            return "Invalid request data", 400
     else:
         return "Invalid request data", 400
