@@ -15,8 +15,9 @@ How to run this project:
 4. Install packages from requirements.txt file
    $pip install -r requirements.txt
 
-5. Create .env.local file and write secret key
+5. Create .env.local file and write secret key and database URI
    export FLASK_SECRET_KEY=<some key>
+   export FLASK_SQLALCHEMY_DATABASE_URI=mysql://<database connection>
 
 6. Activate local environment variables
    $source .env.local
